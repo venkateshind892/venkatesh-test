@@ -389,3 +389,16 @@ REQUIREMENTS:
             status_code=502,
             detail="AI analysis failed. Check the API key, model and service."
         )
+live_search = st.checkbox(
+    "🌐 Live Web Search",
+    value=True,
+    help="Search the internet for up-to-date information"
+)
+
+answer = ask_openai(
+    chat["messages"],
+    prompt,
+    image_bytes=image_bytes,
+    image_mime=image_mime,
+    web_search=live_search
+)
