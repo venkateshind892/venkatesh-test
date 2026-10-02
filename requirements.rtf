@@ -1,123 +1,777 @@
 import streamlit as st
 import requests
+import html
+from datetime import datetime
 
-# APP CONFIGURATION
+# ==========================================
+# NxT AI | PREMIUM FROSTED GLASS UI
+# ==========================================
+
 st.set_page_config(
     page_title="NxT AI",
-    page_icon="🤖",
-    layout="centered"
+    page_icon="✦",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen2.5:1.5b"
+OLLAMA_URL = "http://localhost:11434"
 
+# ==========================================
 # SESSION STATE
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# ==========================================
 
-# CUSTOM UI
-st.markdown("""
+defaults = {
+    "page": "Home",
+    "theme": "Lavender Frost",
+    "character": "Nova",
+    "avatar": "🤖",
+    "personality": "Friendly",
+    "mood": "Cheerful",
+    "custom_prompt": "",
+    "accent": "#6C8CFF",
+    "model": "qwen2.5:1.5b",
+    "messages": [],
+    "favorites": [],
+    "history": [],
+    "show_settings": False,
+}
+
+for key, value in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
+# ==========================================
+# THEMES
+# ==========================================
+
+THEMES = {
+    "Lavender Frost": {
+        "bg1": "#8582ff",
+        "bg2": "#c9a4ff",
+        "bg3": "#f6a6d7",
+        "glass": "rgba(255,255,255,0.15)",
+        "tile": "rgba(255,255,255,0.58)",
+        "text": "#ffffff",
+        "muted": "#f2efff",
+        "border": "rgba(255,255,255,0.38)"
+    },
+    "Arctic Blue": {
+        "bg1": "#4c9aff",
+        "bg2": "#8ce8f9",
+        "bg3": "#d0dfff",
+        "glass": "rgba(255,255,255,0.15)",
+        "tile": "rgba(255,255,255,0.6)",
+        "text": "#ffffff",
+        "muted": "#edf7ff",
+        "border": "rgba(255,255,255,0.4)"
+    },
+    "Rose Quartz": {
+        "bg1": "#f18fbe",
+        "bg2": "#d7a4ff",
+        "bg3": "#ffd7e5",
+        "glass": "rgba(255,255,255,0.15)",
+        "tile": "rgba(255,255,255,0.58)",
+        "text": "#ffffff",
+        "muted": "#fff1f8",
+        "border": "rgba(255,255,255,0.4)"
+    },
+    "Mint Aura": {
+        "bg1": "#50c9b0",
+        "bg2": "#93d9ee",
+        "bg3": "#b3f3ce",
+        "glass": "rgba(255,255,255,0.15)",
+        "tile": "rgba(255,255,255,0.58)",
+        "text": "#ffffff",
+        "muted": "#effffb",
+        "border": "rgba(255,255,255,0.4)"
+    },
+    "Midnight Glass": {
+        "bg1": "#10162e",
+        "bg2": "#353b72",
+        "bg3": "#7956a9",
+        "glass": "rgba(255,255,255,0.10)",
+        "tile": "rgba(255,255,255,0.19)",
+        "text": "#ffffff",
+        "muted": "#d9ddf9",
+        "border": "rgba(255,255,255,0.24)"
+    },
+    "Aurora": {
+        "bg1": "#3437a3",
+        "bg2": "#9461d6",
+        "bg3": "#4dd9c5",
+        "glass": "rgba(255,255,255,0.14)",
+        "tile": "rgba(255,255,255,0.5)",
+        "text": "#ffffff",
+        "muted": "#edf0ff",
+        "border": "rgba(255,255,255,0.35)"
+    }
+}
+
+# ==========================================
+# CHARACTER COLLECTION
+# ==========================================
+
+CHARACTERS = {
+    "Nova": {
+        "avatar": "🤖",
+        "personality": "Friendly",
+        "description": "Your friendly everyday companion"
+    },
+    "Luna": {
+        "avatar": "🌙",
+        "personality": "Calm",
+        "description": "Your calm and thoughtful companion"
+    },
+    "Orion": {
+        "avatar": "🚀",
+        "personality": "Professional",
+        "description": "Your intelligent research companion"
+    },
+    "Pixel": {
+        "avatar": "👾",
+        "personality": "Playful",
+        "description": "Your fun and playful AI friend"
+    },
+    "Athena": {
+        "avatar": "🧠",
+        "personality": "Academic",
+        "description": "Your personal study mentor"
+    },
+    "Cyber": {
+        "avatar": "🦾",
+        "personality": "Technical",
+        "description": "Your coding and technology expert"
+    }
+}
+
+AVATARS = [
+    "🤖", "🌙", "🚀", "👾", "🧠",
+    "🦾", "🦊", "🐼", "🐱", "🐺",
+    "🦋", "🐉", "👻", "💎", "⭐",
+    "🧑‍🚀", "🧙", "🦄"
+]
+
+# ==========================================
+# FROSTED GLASS CSS
+# ==========================================
+
+theme = THEMES[st.session_state.theme]
+accent = st.session_state.accent
+
+css = f"""
 <style>
-.stApp {
-    background: linear-gradient(135deg, #07152f, #102d59);
-    color: white;
-}
-h1, h2, h3, p, label {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {{
+    color-scheme: dark;
+}}
+
+html, body, [class*="css"] {{
+    font-family: 'Inter', sans-serif;
+}}
+
+.stApp {{
+    background:
+        radial-gradient(ellipse at 50% 0%,
+            {theme["bg3"]} 0%, transparent 43%),
+        linear-gradient(125deg,
+            {theme["bg1"]} 0%,
+            {theme["bg2"]} 55%,
+            {theme["bg3"]} 100%);
+    background-attachment: fixed;
+    color: {theme["text"]} !important;
+    min-height: 100vh;
+    overflow-x: hidden;
+}}
+
+/* Large blurred background orbs */
+.stApp::before {{
+    content: "";
+    position: fixed;
+    width: 450px;
+    height: 450px;
+    top: -90px;
+    left: 25%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    filter: blur(100px);
+    opacity: .8;
+    pointer-events: none;
+    z-index: 0;
+}}
+
+.stApp::after {{
+    content: "";
+    position: fixed;
+    width: 560px;
+    height: 560px;
+    right: -150px;
+    bottom: 0;
+    border-radius: 50%;
+    background: rgba(255,225,250,0.8);
+    filter: blur(100px);
+    opacity: .75;
+    pointer-events: none;
+    z-index: 0;
+}}
+
+[data-testid="stAppViewContainer"],
+[data-testid="stHeader"],
+[data-testid="stMain"],
+[data-testid="stSidebar"] {{
+    position: relative;
+    z-index: 1;
+}}
+
+[data-testid="stHeader"] {{
+    background: transparent;
+}}
+
+.block-container {{
+    max-width: 1150px;
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}}
+
+[data-testid="stVerticalBlockBorderWrapper"] {{
+    background: {theme["glass"]} !important;
+    backdrop-filter: blur(100px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(100px) saturate(180%) !important;
+    border: 1px solid {theme["border"]} !important;
+    border-radius: 28px !important;
+    box-shadow:
+        0 24px 80px rgba(35,28,100,0.12),
+        inset 0 1px 1px rgba(255,255,255,0.25);
+}}
+
+.stApp p,
+.stApp label,
+.stApp h1,
+.stApp h2,
+.stApp h3,
+.stApp [data-testid="stMarkdownContainer"] {{
+    color: {theme["text"]} !important;
+}}
+
+.stApp [data-testid="stCaptionContainer"],
+.stApp small {{
+    color: {theme["muted"]} !important;
+}}
+
+/* Inputs */
+.stApp input,
+.stApp textarea,
+.stApp [data-baseweb="select"] > div {{
+    background: rgba(255,255,255,0.22) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: 1px solid {theme["border"]} !important;
+    border-radius: 14px !important;
+}}
+
+.stApp input::placeholder,
+.stApp textarea::placeholder {{
+    color: rgba(255,255,255,0.8) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.8) !important;
+}}
+
+.stApp [data-baseweb="select"] * {{
+    color: #ffffff !important;
+}}
+
+[role="listbox"], [role="option"], [data-baseweb="popover"] {{
+    background: #5e60a6 !important;
     color: white !important;
-}
-.stChatMessage {
-    background-color: rgba(255,255,255,0.07);
-    border-radius: 15px;
-    padding: 12px;
-}
+}}
+
+/* Main buttons */
+.stMain .stButton > button {{
+    width: 100%;
+    min-height: 46px;
+    background: rgba(255,255,255,0.20) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,0.40) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(35px);
+    -webkit-backdrop-filter: blur(35px);
+    font-weight: 600 !important;
+    transition: all .25s ease;
+}}
+
+.stMain .stButton > button:hover {{
+    background: rgba(255,255,255,0.36) !important;
+    border-color: rgba(255,255,255,0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(40,30,130,.16);
+}}
+
+/* Chat bubbles */
+[data-testid="stChatMessage"] {{
+    background: rgba(255,255,255,0.19) !important;
+    border: 1px solid rgba(255,255,255,0.34) !important;
+    border-radius: 22px !important;
+    backdrop-filter: blur(55px);
+    -webkit-backdrop-filter: blur(55px);
+    padding: 15px !important;
+    margin-bottom: 12px;
+}}
+
+/* Chat input */
+[data-testid="stChatInput"] {{
+    background: rgba(255,255,255,0.22) !important;
+    border: 1px solid rgba(255,255,255,0.5) !important;
+    border-radius: 20px !important;
+    backdrop-filter: blur(60px);
+}}
+
+/* Glass icon tiles */
+.app-icon {{
+    height: 72px;
+    width: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px auto;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(255,255,255,0.95);
+    box-shadow:
+        0 8px 22px rgba(35,40,120,0.09),
+        inset 0 1px 8px rgba(255,255,255,0.9);
+    font-size: 31px;
+    transition: .25s ease;
+}}
+
+.app-icon:hover {{
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 14px 35px rgba(35,40,120,.15);
+}}
+
+.tile-label {{
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: {theme["text"]};
+    margin-bottom: 10px;
+}}
+
+.brand {{
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    color: white;
+}}
+
+.muted {{
+    font-size: 13px;
+    color: {theme["muted"]};
+}}
+
+.status-pill {{
+    display: inline-block;
+    padding: 7px 13px;
+    border-radius: 30px;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.35);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+}}
+
+.profile-orb {{
+    height: 105px;
+    width: 105px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 52px;
+    background: radial-gradient(circle at 30% 20%,
+        rgba(255,255,255,.9),
+        rgba(255,255,255,.23));
+    border: 1px solid rgba(255,255,255,.7);
+    box-shadow: 0 10px 45px rgba(255,255,255,.28);
+    backdrop-filter: blur(50px);
+}}
+
+@media (max-width: 640px) {{
+    .block-container {{
+        padding-left: 12px;
+        padding-right: 12px;
+    }}
+    .brand {{
+        font-size: 27px;
+    }}
+    .app-icon {{
+        width: 58px;
+        height: 58px;
+        font-size: 25px;
+        border-radius: 17px;
+    }}
+    [data-testid="stVerticalBlockBorderWrapper"] {{
+        border-radius: 22px !important;
+    }}
+}}
 </style>
-""", unsafe_allow_html=True)
+"""
 
-# HEADER
-st.title("🤖 NxT AI")
-st.caption("Offline On-Device Artificial Intelligence")
-st.success("🔒 Your prompts are processed by a local AI model.")
+st.markdown(css, unsafe_allow_html=True)
 
-# SIDEBAR
+# ==========================================
+# SIDEBAR CUSTOMIZATION
+# ==========================================
+
 with st.sidebar:
-    st.title("⚙️ Settings")
-    st.write("Model: Qwen 2.5 1.5B")
-    st.write("Mode: Local AI")
-    st.write("Internet: Not required after setup")
+    st.markdown("## ✦ NxT AI")
+    st.caption("PERSONAL AI CONTROL CENTER")
 
-    if st.button("🗑️ Clear Chat"):
+    st.divider()
+    st.markdown("### 🧬 Character Studio")
+
+    character_names = list(CHARACTERS.keys()) + ["Custom"]
+
+    selected = st.selectbox(
+        "Choose character",
+        character_names,
+        index=character_names.index(
+            st.session_state.character
+        ) if st.session_state.character in character_names else 0
+    )
+
+    st.session_state.character = selected
+
+    if selected != "Custom":
+        st.session_state.avatar = CHARACTERS[selected]["avatar"]
+        st.session_state.personality = CHARACTERS[selected]["personality"]
+
+    st.markdown("Avatar")
+
+    st.session_state.avatar = st.selectbox(
+        "Choose avatar",
+        AVATARS,
+        index=AVATARS.index(st.session_state.avatar)
+        if st.session_state.avatar in AVATARS else 0,
+        label_visibility="collapsed"
+    )
+
+    st.session_state.character = st.text_input(
+        "Character name",
+        value=st.session_state.character,
+        max_chars=28
+    )
+
+    st.session_state.personality = st.selectbox(
+        "Personality",
+        [
+            "Friendly", "Calm", "Professional",
+            "Playful", "Academic", "Technical",
+            "Creative", "Sarcastic"
+        ],
+        index=[
+            "Friendly", "Calm", "Professional",
+            "Playful", "Academic", "Technical",
+            "Creative", "Sarcastic"
+        ].index(st.session_state.personality)
+        if st.session_state.personality in [
+            "Friendly", "Calm", "Professional",
+            "Playful", "Academic", "Technical",
+            "Creative", "Sarcastic"
+        ] else 0
+    )
+
+    st.session_state.mood = st.selectbox(
+        "Current mood",
+        ["Cheerful", "Calm", "Energetic",
+         "Focused", "Funny", "Motivational"]
+    )
+
+    st.session_state.custom_prompt = st.text_area(
+        "Custom behaviour",
+        value=st.session_state.custom_prompt,
+        placeholder="Describe how your AI should speak...",
+        height=90
+    )
+
+    st.session_state.accent = st.color_picker(
+        "Character accent colour",
+        st.session_state.accent
+    )
+
+    st.divider()
+    st.markdown("### ❄️ Visual Experience")
+
+    st.session_state.theme = st.selectbox(
+        "Glass theme",
+        list(THEMES.keys()),
+        index=list(THEMES.keys()).index(
+            st.session_state.theme
+        )
+    )
+
+    st.divider()
+    st.markdown("### 🧠 AI Engine")
+
+    st.session_state.model = st.text_input(
+        "Ollama model",
+        value=st.session_state.model
+    )
+
+    st.caption("Local mode uses your installed Ollama model.")
+
+    st.divider()
+    st.markdown("### ⚙️ Preferences")
+
+    if st.button("🗑 Clear Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-    st.divider()
-    st.caption("NxT AI | Offline Intelligence")
+    if st.button("↻ Reset Character", use_container_width=True):
+        st.session_state.character = "Nova"
+        st.session_state.avatar = "🤖"
+        st.session_state.personality = "Friendly"
+        st.session_state.custom_prompt = ""
+        st.rerun()
 
-# DISPLAY CHAT HISTORY
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# ==========================================
+# TOP STATUS BAR
+# ==========================================
 
-# CHAT INPUT
-prompt = st.chat_input("Ask NxT AI anything...")
+now = datetime.now()
+left, center, right = st.columns([2, 3, 2])
 
-if prompt:
-    st.session_state.messages.append({
-        "role": "user",
-        "content": prompt
-    })
+with left:
+    st.markdown(
+        '<div class="muted">✦ NxT AI / PERSONAL SPACE</div>',
+        unsafe_allow_html=True
+    )
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+with center:
+    st.markdown(
+        '<div style="text-align:center">'
+        '<span class="status-pill">● LOCAL AI EXPERIENCE</span>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
-    with st.chat_message("assistant"):
-        response_box = st.empty()
+with right:
+    st.markdown(
+        f'<div style="text-align:right;font-size:24px;'
+        f'font-weight:700;color:white">'
+        f'{now.strftime("%H:%M")}</div>'
+        f'<div style="text-align:right;font-size:12px;'
+        f'color:white">{now.strftime("%d %B %Y")}</div>',
+        unsafe_allow_html=True
+    )
 
-        try:
-            payload = {
-                "model": MODEL,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are NxT AI, a helpful offline "
-                            "AI assistant. Give clear, accurate "
-                            "and concise answers."
-                        )
-                    },
-                    *st.session_state.messages
-                ],
-                "stream": False,
-                "options": {
-                    "temperature": 0.7
-                }
-            }
+st.write("")
 
-            response = requests.post(
-                OLLAMA_URL,
-                json=payload,
-                timeout=300
+# ==========================================
+# HERO PROFILE
+# ==========================================
+
+safe_name = html.escape(st.session_state.character)
+
+st.markdown(
+    f"""
+    <div style="text-align:center;padding:15px 0 25px">
+        <div class="profile-orb">
+            {st.session_state.avatar}
+        </div>
+        <div class="brand" style="margin-top:14px">
+            {safe_name}
+        </div>
+        <div class="muted">
+            Your personal AI companion ·
+            {html.escape(st.session_state.personality)}
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==========================================
+# DASHBOARD NAVIGATION
+# ==========================================
+
+APP_ITEMS = [
+    ("History", "🕘"),
+    ("Video", "▶️"),
+    ("Invites", "👤"),
+    ("Favorites", "⭐"),
+    ("Like", "❤️"),
+    ("Comments", "💬"),
+    ("Order", "🔖"),
+    ("Notice", "🔔")
+]
+
+with st.container(border=True):
+    st.markdown(
+        "<h2 style='text-align:center;margin-bottom:25px'>"
+        "What would you like to explore?</h2>",
+        unsafe_allow_html=True
+    )
+
+    for start in (0, 4):
+        cols = st.columns(4)
+
+        for col, (label, emoji) in zip(
+            cols, APP_ITEMS[start:start + 4]
+        ):
+            with col:
+                st.markdown(
+                    f'<div class="app-icon">{emoji}</div>'
+                    f'<div class="tile-label">{label}</div>',
+                    unsafe_allow_html=True
+                )
+
+                if st.button(
+                    "Open",
+                    key=f"nav_{label}",
+                    use_container_width=True
+                ):
+                    st.session_state.page = label
+                    st.rerun()
+
+    st.write("")
+    chat_col, custom_col = st.columns(2)
+
+    with chat_col:
+        if st.button(
+            "✦ Start Conversation",
+            use_container_width=True
+        ):
+            st.session_state.page = "Chat"
+            st.rerun()
+
+    with custom_col:
+        if st.button(
+            "🎨 Customize Character",
+            use_container_width=True
+        ):
+            st.session_state.page = "Character Studio"
+            st.rerun()
+
+# ==========================================
+# PAGE ROUTER
+# ==========================================
+
+page = st.session_state.page
+
+st.write("")
+
+if page == "Chat":
+    st.markdown("## ✦ Chat with " + safe_name)
+
+    for msg in st.session_state.messages:
+        with st.chat_message(
+            msg["role"],
+            avatar=(
+                st.session_state.avatar
+                if msg["role"] == "assistant" else "🧑"
             )
-            response.raise_for_status()
+        ):
+            st.markdown(msg["content"])
 
-            answer = response.json()["message"]["content"]
-            response_box.markdown(answer)
+    prompt = st.chat_input("Ask your AI anything...")
 
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": answer
-            })
+    if prompt:
+        st.session_state.messages.append({
+            "role": "user",
+            "content": prompt
+        })
 
-        except requests.exceptions.ConnectionError:
-            answer = (
-                "⚠️ Cannot connect to Ollama. "
-                "Please start Ollama and try again."
-            )
-            response_box.error(answer)
+        with st.chat_message("user", avatar="🧑"):
+            st.markdown(prompt)
 
-        except requests.exceptions.Timeout:
-            answer = "⚠️ The model took too long to respond."
-            response_box.error(answer)
+        personality = (
+            st.session_state.custom_prompt
+            or f"Act as a {st.session_state.personality} assistant."
+        )
 
-        except Exception as e:
-            answer = f"⚠️ Error: {e}"
-            response_box.error(answer)
+        system_prompt = f"""
+You are {safe_name}, a personal AI companion.
+Personality: {st.session_state.personality}
+Mood: {st.session_state.mood}
+Instructions: {personality}
+Respond naturally and helpfully.
+"""
+
+        with st.chat_message(
+            "assistant",
+            avatar=st.session_state.avatar
+        ):
+            try:
+                with st.spinner("Thinking..."):
+                    response = requests.post(
+                        f"{OLLAMA_URL}/api/chat",
+                        json={
+                            "model": st.session_state.model,
+                            "stream": False,
+                            "messages": [
+                                {
+                                    "role": "system",
+                                    "content": system_prompt
+                                }
+                            ] + st.session_state.messages[-12:]
+                        },
+                        timeout=180
+                    )
+                    response.raise_for_status()
+                    answer = response.json()["message"]["content"]
+                    st.markdown(answer)
+
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": answer
+                })
+
+                st.session_state.history.append(prompt)
+
+            except requests.RequestException as e:
+                st.error(f"Local AI connection error: {e}")
+
+        st.rerun()
+
+elif page == "Character Studio":
+    st.markdown("## 🎨 Character Studio")
+
+    with st.container(border=True):
+        st.markdown(
+            f'<div class="profile-orb">{st.session_state.avatar}</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            f"<h2 style='text-align:center'>{safe_name}</h2>",
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            "<p style='text-align:center'>"
+            "Customize your AI's identity and behaviour "
+            "</p>",
+            unsafe_allow_html=True
+        )
+
+        st.info(
+            "Use the sidebar to change the character's name, "
+            "avatar, personality, mood and accent colour."
+        )
+
+elif page == "History":
+    st.markdown("## 🕘 Recent History")
+    if st.session_state.history:
+        for item in reversed(st.session_state.history[-30:]):
+            with st.container(border=True):
+                st.write("💬 " + item)
+    else:
+        st.info("Your recent questions will appear here.")
+
+elif page == "Favorites":
+    st.markdown("## ⭐ Favorites")
+    st.info("Save favourite responses here in a future update.")
+
+elif page == "Video":
+    st.markdown("## ▶️ Video")
+    st.info("Video analysis interface can be added here.")
+
+elif page == "I
