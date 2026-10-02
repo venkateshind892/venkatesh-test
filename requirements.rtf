@@ -1,3 +1,4 @@
+
 import streamlit as st
 import requests
 import html
@@ -774,4 +775,36 @@ elif page == "Video":
     st.markdown("## ▶️ Video")
     st.info("Video analysis interface can be added here.")
 
-elif page == "I
+elif page == "Invites":
+    st.markdown("## 👤 Invites")
+    st.info("Your character sharing and invitation interface.")
+
+elif page == "Like":
+    st.markdown("## ❤️ Liked Content")
+    st.info("Your liked AI responses can be managed here.")
+
+elif page == "Comments":
+    st.markdown("## 💬 Comments")
+    st.info("Conversation notes and comments.")
+
+elif page == "Order":
+    st.markdown("## 🔖 Saved Items")
+    st.info("Your bookmarked content.")
+
+elif page == "Notice":
+    st.markdown("## 🔔 Notifications")
+    st.info("Your NxT AI notifications.")
+
+# ==========================================
+# FOOTER
+# ==========================================
+
+st.markdown(
+    """
+    <div style="text-align:center;padding:25px 0 10px;
+    color:rgba(255,255,255,.75);font-size:12px">
+        ✦ NxT AI · Frosted Intelligence · Your Private Space
+    </div>
+    """,
+    unsafe_allow_html=True
+)
