@@ -766,5 +766,108 @@ if not messages:
                 "Suggest innovative AI project ideas."
             )
             st.rerun()
+            
+import os
+import streamlit as st
+from ddgs import DDGS
+from openai import OpenAI
+
+st.set_page_config(page_title="NxT AI Search", page_icon="🔎")
+
+st.title("🔎 NxT AI — Internet Search")
+
+api_key = os.getenv("DEEPSEEK_API_KEY")
+
+with st.form("internet_search"):
+    query = st.text_input(
+        "Search anything",
+        placeholder="Latest AI news, Python tutorials..."
+    )
+    submitted = st.form_submit_button("Search the Internet")
+
+if submitted:
+    if not query.strip():
+        st.warning("Enter a search query.")
+    else:
+        try:
+            with st.spinner("Searching the internet..."):
+                results = list(
+                    DDGS().text(query.strip(), max_results=6)
+                )
+
+            if not results:
+                st.info("No search results found.")
+            else:
+                # Prepare search results
+                sources = []
+                for item in results:
+                    sources.append({
+                        "title": item.get("title", ""),
+                        "url": item.get("href", ""),
+                        "summary": item.get("body", "")
+                    })
+
+                st.subheader("🤖 NxT AI Answer")
+
+                if api_key:
+                    client = OpenAI(
+                        api_key=api_key,
+                        base_url="https://api.deepseek.com"
+                    )
+
+                    source_text = "\n\n".join(
+                        f"Title: {s['title']}\n"
+                        f"URL: {s['url']}\n"
+                        f"Content: {s['summary']}"
+                        for s in sources
+                    )
+
+                    with st.spinner("AI is analysing results..."):
+                        response = client.chat.completions.create(
+                            model="deepseek-flash",
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": (
+                                        "You are NxT AI. Answer using the "
+                                        "provided web search results. "
+                                        "Do not invent facts. Mention "
+                                        "uncertainty and cite sources "
+                                        "using their URLs."
+                                    )
+                                },
+                                {
+                                    "role": "user",
+                                    "content": (
+                                        f"Question: {query}\n\n"
+                                        f"Search results:\n{source_text}"
+                                    )
+                                }
+                            ]
+                        )
+
+                    st.markdown(
+                        response.choices[0].message.content
+                    )
+                else:
+                    st.info(
+                        "DeepSeek API key not configured. "
+                        "Showing raw web results instead."
+                    )
+
+                st.subheader("🌐 Web Sources")
+
+                for i, source in enumerate(sources, 1):
+                    with st.container(border=True):
+                        st.markdown(f"**{i}. {source['title']}**")
+                        st.write(source["summary"])
+                        if source["url"].startswith("https://"):
+                            st.markdown(
+                                f"[Open source]({source['url']})"
+                            )
+
+        except Exception as e:
+            st.error(f"Search error: {e}")
+
 
 
