@@ -767,11 +767,4 @@ if not messages:
             )
             st.rerun()
 
-# ==========================================
-# DISPLAY EXISTING MESSAGES
-# ==========================================
 
-for msg in messages:
-    if msg["role"] == "user":
-        with st.chat_message("user", avatar="🧑"):
-            st.markdown(msg["con
